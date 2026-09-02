@@ -11,6 +11,9 @@ def apply_defects(tx, party, defect):
 
     if defect == "DUPLICATED_TOWN":
         tx[f"{party}_adr_line"] = [tx[f"{party}_twn_nm"]]
+        
+    if defect == "INVALID_COUNTRY":
+        tx[f"{party}_ctry"] = "UK"
 
     if defect == "UNSTRUCTURED_ONLY":
         line1 = f"{tx[f'{party}_bldg_nb']} {tx[f'{party}_strt_nm']}"
