@@ -1,11 +1,12 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, explode, when, lit, array_contains, substring
-
+import time
 spark = SparkSession.builder.appName("silver").getOrCreate()
 
 BRONZE = "data/bronze/ingest_date=*"
 SILVER = "data/silver"
 
+start = time.time()
 
 def defect_rule(party):
     town = col(f"{party}_town")
@@ -61,3 +62,4 @@ clean.write.mode("overwrite").parquet(f"{SILVER}/payments")
 quarantine.write.mode("overwrite").parquet(f"{SILVER}/quarantine")
 
 print("clean:", clean.count(), "quarantine:", quarantine.count())
+print("seconds:", round(time.time() - start, 1))
