@@ -108,6 +108,14 @@ DEBTOR_WEIGHTS = {
     "INVALID_COUNTRY": 1,
 }
 
+CHANNELS = {
+    "PAIN001_SCORE_PLUS": {"weight": 25, "delta": 19},
+    "PROPRIETARY":        {"weight": 15, "delta": 14},
+    "RETAIL_APP":         {"weight": 40, "delta": 4},
+    "BRANCH":             {"weight": 8,  "delta": -1},
+    "MT101_SCORE":        {"weight": 12, "delta": -31},
+}
+
 
 def pick_defect(rng, weights):
     names = list(weights)
@@ -119,7 +127,32 @@ def pick_corridor(rng):
     weights = [CORRIDORS[n]["weight"] for n in names]
     return rng.choices(names, weights=weights, k=1)[0]
 
-def make_payment(rng, n, corridor):
+def pick_channel(rng):
+    names = list(CHANNELS)
+    weights = [CHANNELS[n]["weight"] for n in names]
+    return rng.choices(names, weights=weights, k=1)[0]
+
+def adjusted_weights(corridor, channel):
+    base = dict(CORRIDORS[corridor]["defects"])
+    delta = CHANNELS[channel]["delta"]
+
+    new_clean = base["CLEAN"] + delta
+    if new_clean > 98:
+        new_clean = 98
+    if new_clean < 5:
+        new_clean = 5
+
+    shift = new_clean - base["CLEAN"]
+    old_bad = 100 - base["CLEAN"]
+    new_bad = 100 - new_clean
+
+    out = {"CLEAN": new_clean}
+    for name, weight in base.items():
+        if name != "CLEAN":
+            out[name] = weight * new_bad / old_bad
+    return out
+
+def make_payment(rng, n, corridor, channel):
     c = CORRIDORS[corridor]
     d_twn, d_prov, d_pst = rng.choice(CANADA_CITIES)
     c_twn, c_prov, c_pst = rng.choice(c["cities"])
@@ -129,7 +162,10 @@ def make_payment(rng, n, corridor):
         "uetr": str(uuid.uuid4()),
         "interbank_settlement_amount": f"{rng.uniform(100, 10000):.2f}",
         "interbank_settlement_currency": c["currency"],
+        "instd_amount": f"{rng.uniform(100, 50000):.2f}",
+        "instd_currency": "CAD",
         "charge_bearer": "SLEV",
+        "pmt_tp_inf_lcl_instrm_cd": channel,
 
         "debtor_name": f"{rng.choice(FIRST_NAMES)} {rng.choice(LAST_NAMES)}",
         "debtor_agent_bic": "WSPLCATTXXX",
@@ -141,7 +177,7 @@ def make_payment(rng, n, corridor):
 
         "creditor_name": f"{rng.choice(FIRST_NAMES)} {rng.choice(LAST_NAMES)}",
         "creditor_agent_bic": c["bic"],
-        "creditor_account_iban": "CA12ROYC0000001234567890",
+        "creditor_account_iban": f"{corridor}{rng.randint(10,99)}{c['bic'][:4]}{rng.randint(10**11, 10**12-1)}",
         "creditor_strt_nm": rng.choice(c["streets"]),
         "creditor_bldg_nb": str(rng.randint(1, 999)),
         "creditor_pst_cd": c_pst,
@@ -179,10 +215,11 @@ for day_offset in range(30):
         for j in range (PER_FILE):
             n += 1
             corridor = pick_corridor(rng)
-            tx = make_payment(rng, n, corridor) 
+            channel = pick_channel(rng)
+            tx = make_payment(rng, n, corridor, channel)
             defect = pick_defect(rng, DEBTOR_WEIGHTS)
             tx = apply_defects(tx, "debtor", defect)
-            cdt_defect = pick_defect(rng, CORRIDORS[corridor]["defects"])
+            cdt_defect = pick_defect(rng, adjusted_weights(corridor, channel))
             tx = apply_defects(tx, "creditor", cdt_defect)
             answer_key.append({
                 "uetr": tx["uetr"],
@@ -216,3 +253,7 @@ with open("data/answer_key.csv", "w", newline="", encoding="utf-8") as f:
     writer = csv.DictWriter(f, fieldnames=["uetr", "corridor", "party", "defect", "source_file"])
     writer.writeheader()
     writer.writerows(answer_key)
+
+broken_folder = "data/bronze/ingest_date=2026-07-15"
+with open(f"{broken_folder}/msgs-truncated.xml", "w", encoding="utf-8") as f:
+    f.write(xml[:800])
