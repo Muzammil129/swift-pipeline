@@ -21,7 +21,10 @@ def defect_rule(party):
         .when(lines.isNotNull() & array_contains(lines, town), lit("DUPLICATED_TOWN"))
         .otherwise(lit("CLEAN"))
     )
-wide = spark.read.format("xml").option("rowTag", "FIToFICstmrCdtTrf").load(BRONZE)
+wide = spark.read.format("xml").option("rowTag", "FIToFICstmrCdtTrf").option("mode","PERMISSIVE").option("columnNameOfCorruptRecord", "_corrupt").load(BRONZE)
+
+dead_letter = wide.filter(col("_corrupt").isNotNull())
+wide = wide.filter(col("_corrupt").isNull())
 
 silver = wide.select(
     col("GrpHdr.MsgId").alias("msg_id"),
@@ -50,6 +53,8 @@ silver = wide.select(
     col("tx.Cdtr.PstlAdr.AdrLine").alias("creditor_adr_lines"),
 )
 
+silver.write.mode("overwrite").parquet("data/bronze_parsed")
+
 tagged = silver \
     .withColumn("debtor_defect", defect_rule("debtor")) \
     .withColumn("creditor_defect", defect_rule("creditor")) \
@@ -60,6 +65,8 @@ quarantine = tagged.filter((col("debtor_defect") != "CLEAN") | (col("creditor_de
 
 clean.write.mode("overwrite").parquet(f"{SILVER}/payments")
 quarantine.write.mode("overwrite").parquet(f"{SILVER}/quarantine")
+dead_letter.write.mode("overwrite").parquet(f"{SILVER}/dead_letter")
 
 print("clean:", clean.count(), "quarantine:", quarantine.count())
 print("seconds:", round(time.time() - start, 1))
+print("clean:", clean.count(), "quarantine:", quarantine.count(), "dead:", dead_letter.count())
