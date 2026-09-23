@@ -1,0 +1,8 @@
+defect_code,description,remediation_group
+CLEAN,Address meets structured requirements,None
+MISSING_COUNTRY,Country field absent,Auto-fixable
+PLACEHOLDER_COUNTRY,Country contains placeholder text,Auto-fixable
+INVALID_COUNTRY,Country code not in ISO 3166,Auto-fixable
+DUPLICATED_TOWN,Town appears in both structured and free text,Auto-fixable
+MISSING_TOWN,Town field absent,Needs source data
+UNSTRUCTURED_ONLY,Address held entirely as free text,Needs source data

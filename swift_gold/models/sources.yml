@@ -1,0 +1,10 @@
+version: 2
+
+sources:
+  - name: swift
+    catalog: dataengineering
+    schema: swift
+    tables:
+      - name: silver_payments
+      - name: silver_quarantine
+      - name: ref_answer_key

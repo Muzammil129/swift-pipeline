@@ -1,0 +1,31 @@
+version: 2
+
+models:
+  - name: fct_payment
+    description: "One row per payment. 448,000 cross-border pacs.008 payments with CBPR+ compliance flags."
+    columns:
+      - name: uetr
+        description: "Unique payment identifier."
+        tests:
+          - not_null
+          - unique
+      - name: corridor
+        description: "Destination country, derived from creditor BIC characters 5-6."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_corridor')
+              field: corridor
+      - name: channel
+        tests:
+          - relationships:
+              to: ref('dim_channel')
+              field: channel
+      - name: creditor_defect
+        tests:
+          - relationships:
+              to: ref('dim_defect')
+              field: defect_code
+      - name: is_failing
+        tests:
+          - not_null

@@ -1,0 +1,6 @@
+channel,segment,format,migration_status
+PAIN001_SCORE_PLUS,Corporate,ISO 20022,Native
+MT101_SCORE,Corporate,MT,Legacy
+PROPRIETARY,Corporate,Bank portal,Native
+RETAIL_APP,Retail,Bank app,Native
+BRANCH,Retail,Staff entry,Native

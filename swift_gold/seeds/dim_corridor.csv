@@ -1,0 +1,9 @@
+corridor,country_name,region,infra_status
+US,United States,Americas,Migrated
+GB,United Kingdom,Europe,Migrated
+IN,India,Southern Asia,Unknown
+PH,Philippines,Southeast Asia,Unknown
+PK,Pakistan,Southern Asia,Unknown
+CN,China,Eastern Asia,Unknown
+MX,Mexico,Americas,Unknown
+NG,Nigeria,Sub-Saharan Africa,Unknown
