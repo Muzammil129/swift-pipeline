@@ -1,0 +1,11 @@
+swift_gold:
+  outputs:
+    dev:
+      type: databricks
+      catalog: dataengineering
+      schema: swift
+      host: dbc-4dee394b-4510.cloud.databricks.com
+      http_path: /sql/1.0/warehouses/c15c20d878cd3693
+      token: "{{ env_var('DBT_DATABRICKS_TOKEN') }}"
+      threads: 1
+  target: dev
