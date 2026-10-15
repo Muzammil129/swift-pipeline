@@ -6,6 +6,8 @@ A data pipeline that answers one question a bank has to answer before the CBPR+ 
 
 **33.7% of 448,000 payments carry at least one non-compliant address. Rule-based remediation clears a third of them; 21.4% still needs source data.**
 
+![Dashboard](docs/swift_dashboard.png)
+
 
 ---
 
