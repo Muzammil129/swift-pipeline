@@ -15,7 +15,7 @@ A data pipeline that answers one question a bank has to answer before the CBPR+ 
 
 ISO 20022 migration for cross-border payments completed in November 2025 — MT103 is retired, everything runs on `pacs.008`. But migrating the *message format* is not the same as migrating the *data inside it*.
 
-The CBPR+ rulebook requires postal addresses in structured form: separate elements for street, town and country, rather than free text. Roughly two-thirds of messages in the wild still carry unstructured addresses. SWIFT deferred the November 2026 deadline in August 2026, with a new date expected — which changes the timeline, not the problem.
+CBPR+ requires town and country as dedicated structured elements. A fully structured address puts everything in its own element; a *hybrid* address (allowed since SR2025) adds up to two 70-character free-text lines that must not repeat the structured fields. What's being removed is the fully unstructured address — free text only. Swift's own September 2026 data shows **50.2% of debtor and 52.7% of creditor addresses** in CBPR+ `pacs.008` traffic are still fully unstructured. Swift deferred the 14 November 2026 cutoff in August 2026, with an update expected in December — which changes the timeline, not the problem.
 
 A bank facing that deadline needs to know its exposure, where it's concentrated, and what the cheapest remediation is. This pipeline produces those answers from raw `pacs.008` XML.
 
@@ -87,11 +87,11 @@ The generator is deliberately **not** orchestrated. It exists to produce a fixed
 | Worst intake channel | MT101, **64.8%** |
 | Best intake channel | pain.001, 21.6% |
 
-**Channel predicts failure better than corridor.** Corridor spans a 2× range (24.3% – 47.8%); channel spans 3× (21.6% – 64.8%). And channel is the one a bank can change.
+**Channel spans a wider range than corridor in this data.** Corridor spans 2× (24.3% – 47.8%); channel spans 3× (21.6% – 64.8%). That's a modelling choice — the generator applies a per-channel offset — but it reflects a real argument: channel is the lever a bank can actually pull.
 
-**MT101's rate isn't user carelessness — it's structural.** The MT101 message format has four lines of 35-character free text for an address and no separate town or country element. A payment arriving that way is unstructured before the receiving bank touches it. Migrating those corporate clients to `pain.001` would eliminate roughly 23,000 failures a month from 12% of volume.
+**Why MT101 is modelled as the worst channel.** MT has no separate tag for town or country; address data lives inside fields `50a` and `59a`. In the free-text option of field 59, the beneficiary address is four 35-character lines, and country is at most a convention on the last line (`/CC/`), not a dedicated element. Translation to ISO 20022 can't turn free text into structured fields. Option `59F` *does* carry country and town, in a `3/CC/Town` line — so MT101's real-world failure rate depends on how often corporates use free text versus `59F`, which isn't published. The 64.8% reflects the assumption that free text dominates.
 
-**Two-thirds of defects need source data.** Missing country, placeholder country, invalid country code and duplicated town are all fixable by rule — the destination country is recoverable from the creditor BIC. Missing town and fully unstructured addresses are not; they need the customer's record or a parse with human review. Every corridor is majority needs-source-data, which is why automated remediation moves the rate from 33.7% to 21.4% and no further.
+**Remediation split — modelled, not measured.** Defects were classified as auto-fixable (missing, placeholder or invalid country; duplicated town) or needing source data (missing town; fully unstructured). The 21.4% residual counts the second group. That classification describes a reasonable real-world expectation, but the generated data can't test it — see Limitations.
 
 ---
 
@@ -228,12 +228,10 @@ Defect rates per corridor and per channel are similarly derived, with the channe
 
 ## Limitations
 
-The synthetic data is cleaner than real traffic. Swift's September 2026 CBPR+ data shows about half of addresses fully unstructured, 12–20% hybrid and up to 14% with no address; this generator plants far fewer unstructured addresses and no hybrid or address-less parties. Defect rates are assumptions, The six planted defect types cover the main format failures; untested format failures include line-count and town-length limits, non-Latin characters and address-less parties. The research also lists data-quality defects that pass format checks.
+**The synthetic data is cleaner than real traffic.** Swift's September 2026 CBPR+ data shows about half of addresses fully unstructured, 12–20% hybrid and up to 14% with no address; this generator plants far fewer unstructured addresses and no hybrid or address-less parties. Defect rates are assumptions — only format shares are published. The six planted defect types cover the main format failures; untested format failures include line-count and town-length limits, non-Latin characters and address-less parties. The research also lists data-quality defects that pass format checks.
 
-The remediation split is modelled, not measured. Every planted defect is reversible by construction — MISSING_TOWN keeps a postcode that maps to exactly one town, and UNSTRUCTURED_ONLY writes a clean {town} {postcode} line — so the 21.4% is a count of labels, not a recovery rate. Real recovery is much harder: the best published parser scores 0.801 F1 on real SWIFT addresses. v2 adds a recovery step scored against the answer key.
+**The remediation split is modelled, not measured.** Every planted defect is reversible by construction — `MISSING_TOWN` keeps a postcode that maps to exactly one town, and `UNSTRUCTURED_ONLY` writes a clean `{town} {postcode}` line — so the 21.4% is a count of labels, not a recovery rate. Real recovery is much harder: the best published parser scores 0.801 F1 on real SWIFT addresses. v2 adds a recovery step scored against the answer key.
 
-Validation gaps the data never exercises. Duplicate-town detection is exact-match (real duplication is a substring); an address with no town, country or lines falls through to CLEAN; the hybrid two-line cap isn't enforced; and with one defect per party, PLACEHOLDER_COUNTRY also writes NOTPROVIDED into Ctry, which fails the schema — the XSD validator is imported but never called.
+**Validation gaps the data never exercises.** Duplicate-town detection is exact-match (real duplication is a substring); an address with no town, country or lines falls through to `CLEAN`; the hybrid two-line cap isn't enforced; and with one defect per party, the `when()` precedence is never tested. `PLACEHOLDER_COUNTRY` also writes `NOTPROVIDED` into `Ctry`, which fails the schema — the XSD validator is imported but never called.
 
-Defect precedence is untested, The validation rules are a `when()` chain, so order decides the label when an address has two defects. The generator plants exactly one defect per party, so that ordering is never exercised. On real data it would be, and the precedence would need a documented rationale rather than the order it happened to be written in.
-
-Other simplifications. Amounts are uniform rather than calibrated; corridor weights merge two surveys with different units; one BIC per corridor; defect rates are flat over time; full refresh rather than incremental MERGE, which production volume and a stateful quarantine would need.
+**Other simplifications.** Amounts are uniform rather than calibrated; corridor weights merge two surveys with different units; one BIC per corridor; defect rates are flat over time; full refresh rather than incremental `MERGE`, which production volume and a stateful quarantine would need.
