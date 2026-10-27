@@ -4,7 +4,7 @@
 
 A data pipeline that answers one question a bank has to answer before the CBPR+ structured-address deadline: *what percentage of our cross-border payments would be rejected, and why?*
 
-**33.7% of 448,000 payments carry at least one non-compliant address. Rule-based remediation clears a third of them; 21.4% still needs source data.**
+**33.7% of 448,000 payments carry at least one non-compliant address. The remediation split is modelled, not measured — see Limitations**.
 
 ![Dashboard](docs/swift_dashboard.png)
 
@@ -80,7 +80,7 @@ The generator is deliberately **not** orchestrated. It exists to produce a fixed
 | | |
 |---|---|
 | Payment-level failure rate | **33.7%** — 150,885 of 448,000 |
-| After rule-based remediation | **21.4%** — 95,995 still failing |
+| After rule-based remediation | **21.4%** — 95,995 still failing | modelled - see limitations
 | Cleared by rules | 54,890 payments, ~36% of failures |
 | Worst corridor by rate | India, 47.8% |
 | Worst corridor by volume | **United States — 62,709 failures**, more than India and the Philippines combined |
