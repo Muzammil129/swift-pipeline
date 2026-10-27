@@ -228,14 +228,12 @@ Defect rates per corridor and per channel are similarly derived, with the channe
 
 ## Limitations
 
-**Payment amounts are uncalibrated.** They're drawn uniformly between $10 and $50,000, with no corridor or channel variation. Statistics Canada publishes annual remittance totals per person, not per-payment sizes, so there was nothing to calibrate against. Since the compliance question doesn't depend on amount, the effort went into defect realism instead. Per-corridor lognormal distributions would be the first extension.
+The synthetic data is cleaner than real traffic. Swift's September 2026 CBPR+ data shows about half of addresses fully unstructured, 12–20% hybrid and up to 14% with no address; this generator plants far fewer unstructured addresses and no hybrid or address-less parties. Defect rates are assumptions, The six planted defect types cover the main format failures; untested format failures include line-count and town-length limits, non-Latin characters and address-less parties. The research also lists data-quality defects that pass format checks.
 
-**Corridor weights merge two surveys** with different populations and different units — payment counts versus annual remittance values. The ranking and relative magnitudes are sourced; the exact splits are constructed. The UK weight in particular falls outside both surveys and is a judgement call.
+The remediation split is modelled, not measured. Every planted defect is reversible by construction — MISSING_TOWN keeps a postcode that maps to exactly one town, and UNSTRUCTURED_ONLY writes a clean {town} {postcode} line — so the 21.4% is a count of labels, not a recovery rate. Real recovery is much harder: the best published parser scores 0.801 F1 on real SWIFT addresses. v2 adds a recovery step scored against the answer key.
 
-**Defect precedence is untested.** The validation rules are a `when()` chain, so order decides the label when an address has two defects. The generator plants exactly one defect per party, so that ordering is never exercised. On real data it would be, and the precedence would need a documented rationale rather than the order it happened to be written in.
+Validation gaps the data never exercises. Duplicate-town detection is exact-match (real duplication is a substring); an address with no town, country or lines falls through to CLEAN; the hybrid two-line cap isn't enforced; and with one defect per party, PLACEHOLDER_COUNTRY also writes NOTPROVIDED into Ctry, which fails the schema — the XSD validator is imported but never called.
 
-**One BIC per corridor.** Realistic enough for compliance measurement, but it makes the data far more skewed than reality for any partitioning exercise.
+Defect precedence is untested, The validation rules are a `when()` chain, so order decides the label when an address has two defects. The generator plants exactly one defect per party, so that ordering is never exercised. On real data it would be, and the precedence would need a documented rationale rather than the order it happened to be written in.
 
-**Full refresh, not incremental.** At 448,000 payments a complete rebuild takes under a minute, so incremental processing would be machinery without a purpose. At production volume this would need watermarks and `MERGE INTO` for idempotent reruns — and quarantine in particular would want `MERGE` rather than overwrite, so a remediated payment keeps its state across runs.
-
-**The defect rate is flat over time** by construction, so there is no trend to report and no time-series chart. Plotting one would imply a finding that isn't there.
+Other simplifications. Amounts are uniform rather than calibrated; corridor weights merge two surveys with different units; one BIC per corridor; defect rates are flat over time; full refresh rather than incremental MERGE, which production volume and a stateful quarantine would need.
