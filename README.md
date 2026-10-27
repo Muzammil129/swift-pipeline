@@ -222,7 +222,7 @@ Databricks personal access tokens expire. When the DAG fails with `403 Invalid a
 
 The payments are synthetic. Corridor weights are **derived from** — not matched to — Statistics Canada's 2018 Study on International Money Transfers and Payments Canada's international payments survey. SIMT reports value, so implied payment counts were obtained by dividing corridor value by the average transfer size for that region. The US share is anchored to the Payments Canada figure, because SIMT surveys only people born in ODA-eligible countries and therefore excludes US-born senders almost entirely.
 
-Defect rates per corridor and per channel are similarly derived, with the channel model applying an additive offset to the corridor baseline.
+Defect rates per corridor and per channel are **assumptions**, not sourced figures — no public source publishes address-defect frequencies. Swift publishes only format shares (structured / hybrid / unstructured), which are far higher than modelled here. The channel model applies an additive offset to the corridor baseline.
 
 ---
 
