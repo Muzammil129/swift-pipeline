@@ -145,6 +145,28 @@ The join is checked for grain before the result is trusted. The answer key has t
 
 **Tests are negative-controlled.** Three singular dbt tests assert the row count (448,000), the failure rate (33.7%) and ground-truth agreement (100%). Each was deliberately broken once and confirmed to fail before being trusted — a green test proves nothing until you have watched it go red.
 
+
+## Gold layer
+
+A Kimball star schema built in dbt. The fact table, `fct_payment`, is at **payment grain** — one row per payment, 448,000 rows — carrying the corridor, channel, both parties' defect labels and an `is_failing` flag. Three dimensions (`dim_corridor`, `dim_channel`, `dim_defect`) are **dbt seeds**: small, human-maintained reference data kept as CSVs in Git, so a reclassification shows up as a reviewable diff. Reporting views sit on top: headline rate, corridor, channel, defect breakdown, remediation and ground truth.
+
+**Schema tests (7)** on `fct_payment`:
+
+| Column | Tests | Why |
+|---|---|---|
+| `uetr` | `not_null`, `unique` | A duplicate payment would inflate every report |
+| `corridor` | `not_null`, `relationships` → `dim_corridor` | Corridor comes from `substring(creditor_bic, 5, 2)`. A malformed BIC would produce a code outside the eight, the inner join in the corridor report would silently drop those payments, and totals would stop summing to 448,000 with nothing flagging it. This test fails loudly instead. |
+| `channel` | `relationships` → `dim_channel` | Same silent-drop risk on the channel report |
+| `creditor_defect` | `relationships` → `dim_defect` | An unknown defect code would drop out of remediation reporting |
+| `is_failing` | `not_null` | Every report depends on it |
+
+The three singular tests are covered under Validation.
+
+## Governance
+
+Unity Catalog does two jobs here. The **catalog** half: an external location over the S3 bucket, a storage credential, three-part names. The **governance** half: table and column comments on every Gold object, and grants.
+
+Grants are deliberately asymmetric. `account users` get `SELECT` on the fact, the dimensions and the reporting views. Silver and Bronze get nothing — they carry debtor and creditor names and full postal addresses, which in a bank is PII. Analysts read Gold; row-level payment data stays with the pipeline's own identity, enforced in Unity Catalog rather than application code. (This is a single-user workspace, so the grants demonstrate the pattern rather than protect anyone.)
 ---
 
 ## Stack
