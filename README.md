@@ -65,7 +65,7 @@ silver_parse  >>  dbt_build
 - `silver_parse` — `DatabricksRunNowOperator` triggering the Silver parsing job on the Databricks cluster.
 - `dbt_build` — `BashOperator` running `dbt build` (seed → run → test) against the Databricks SQL warehouse.
 
-**Scheduling** — every three days for this project; daily would be the production cadence. `catchup=False`, because the data is dated August and a backfill would otherwise fire eight months of runs nobody asked for.
+**Scheduling** — every three days for this project; daily would be the production cadence. `catchup=False`, because each run is a full refresh of a fixed dataset — there are no missed intervals with their own data to backfill, so replaying every skipped schedule would just redo the same work.
 
 **Retries** — three attempts with exponential backoff, five minutes growing to a thirty-minute cap. The Bronze layer makes reruns cheap, so retrying before alerting costs little.
 
